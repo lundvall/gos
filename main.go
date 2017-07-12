@@ -15,6 +15,11 @@ func main() {
 		terror(errors.New("missing gopath"))
 	}
 
+	gopath, err := format(os.Args[1])
+	if err != nil {
+		terror(err)
+	}
+
 	shrc, err := shellrc()
 	if err != nil {
 		terror(err)
@@ -24,10 +29,26 @@ func main() {
 		terror(err)
 	}
 
-	gopath := os.Args[1]
 	if err := modify(shrc, gopath); err != nil {
 		terror(err)
 	}
+}
+
+func format(gopath string) (string, error) {
+	if gopath[len(gopath)-1] == '/' {
+		gopath = gopath[:len(gopath)-1]
+	}
+
+	fi, err := os.Stat(gopath)
+	if err != nil {
+		return gopath, err
+	}
+
+	if !fi.IsDir() {
+		return gopath, fmt.Errorf("%s no such directory", fi.Name())
+	}
+
+	return gopath, nil
 }
 
 func shellrc() (string, error) {
@@ -70,19 +91,6 @@ func backup(src, dest string) error {
 }
 
 func modify(path, gopath string) error {
-	if gopath[len(gopath)-1] == '/' {
-		gopath = gopath[:len(gopath)-1]
-	}
-
-	fi, err := os.Stat(gopath)
-	if err != nil {
-		return err
-	}
-
-	if !fi.IsDir() {
-		return fmt.Errorf("%s no such directory", fi.Name())
-	}
-
 	bs, err := ioutil.ReadFile(path)
 	if err != nil {
 		return err
